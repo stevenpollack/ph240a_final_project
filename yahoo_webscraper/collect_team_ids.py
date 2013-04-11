@@ -1,5 +1,6 @@
 """
 Create a dictionary of Team Names and internal id's from rivals.yahoo.com;
+And, a reverse look-up dictionary.
 
 The Yahoo! HTML is computer-generated, but can you can infer team id's
 from relative URL's. For example, the Albany Great Danes' URL is
@@ -24,6 +25,7 @@ teams_page_html = br.open("http://rivals.yahoo.com/ncaa/basketball/teams").get_d
 tag_soup = BeautifulSoup(teams_page_html)
 
 team_ids = dict()
+team_names = dict()
 
 regex_pattern = re.compile('/ncaab/teams/[a-z]{3}') # search pattern for anchor tags
 
@@ -32,4 +34,4 @@ for tag in tag_soup.find_all('a',href=regex_pattern):
     team_name = tag.text.replace(u'\xa0',' ').encode('utf-8')
     team_id = tag.get('href').split('/')[3]
     team_ids[team_name] = team_id
-
+    team_names[team_id] = team_name
