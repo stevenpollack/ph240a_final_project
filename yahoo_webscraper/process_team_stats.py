@@ -4,7 +4,19 @@ import mechanize
 import csv
 from collect_team_ids import team_names,team_ids
 
-def scrape_stat_table(url="http://rivals.yahoo.com/ncaa/basketball/teams/aca/stats"):
+def scrape_schedule_table(url="http://rivals.yahoo.com/ncaa/basketball/teams/aca/stats"):
+    """ Doc string
+    """
+    
+    br = mechanize.Browser()
+    stat_page_html = br.open(url).get_data()
+    
+    tag_soup = BeautifulSoup(stat_page_html)
+    
+    table_header = ['Date','Opponent','Result','Score','Postseason']
+    team_schedule = [table_header]
+
+def scrape_stat_table(url):
     """ Recreates the stats table found at input, url, as a list of lists. 
         
         Input:
@@ -101,11 +113,64 @@ def yahoo_stat_url_for_team(team_name,year=2012):
     
     return url
 
+def converted_date(date_string):
+    """ expect a string like "Fri, Nov 3, 2004".
+        want to output 2004-11-3
+    """ 
+    month_regex = ".*?(?P<month>Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)"
+    month_dict = {'Jan':1, 'Feb':2, 'Mar':3, 'Apr':4, 'May':5, 'Jun':6, 'Jul':7, 'Aug':8, 'Sep':9, 'Oct':10, 'Nov':11, 'Dec':12}
+
+    
+    try:
+        year = re.match(".*?(?P<year>[0-2][0-9]{3})",date_string).group("year")
+        month = re.match(month_regex,date_string).group("month")
+        numerical_month = str(month_dict[month])
+        numerical_day_regex = ''.join([".*?(?<=",month,"\s)(?P<day_num>[0-9]{1,2}?)"])
+        numerical_day = re.match(numerical_day_regex,date_string).group("day_num")
+        reformated_date = "-".join([year,numerical_month,numerical_day])
+        return reformated_date
+    except (AttributeError,KeyError) as e:
+        print("Improperly formed date string!")
+        
+
 if __name__ == "__main__" :
-    ### test against 2004 season for South Carolina Upstate Spartans:
-    url = "http://rivals.yahoo.com/ncaa/basketball/teams/sec/stats?year=2004"
+#    ### test against 2004 season for South Carolina Upstate Spartans:
+#    url = "http://rivals.yahoo.com/ncaa/basketball/teams/sec/stats?year=2004"
+#    
+#    #scrape_and_export_team_stats(url)
+#    print yahoo_stat_url_for_team('N. Mexico St.',2004)
+
+#<tr class="ysprow1" valign="top"><td height="18">&nbsp;</td><td nowrap>Fri, Nov  9</td>
+#    <td><a href=/ncaab/teams/dav>Duquesne</a></td>
+#    <td><a href=/ncaab/recap?gid=201211091176>W 69-66</a></td>
     
-    #scrape_and_export_team_stats(url)
-    print yahoo_stat_url_for_team('N. Mexico St.',2004)
+    print converted_date("Fri, November 3 2012")
     
+    url = "http://rivals.yahoo.com/ncaa/basketball/teams/aca/schedule?y=2004"
+    
+    br = mechanize.Browser()
+    schedule_page_html = br.open(url).get_data()
+    
+    tag_soup = BeautifulSoup(schedule_page_html)
+    
+    table_header = ['Date','Opponent','Location','Result','Score','Postseason']
+    team_schedule = [table_header]
+    
+    for schedule_row in tag_soup.find_all('tr', re.compile('ysprow[12]')):
+        """ the easiest way to do this is the straight-forward
+            brute force way; col's 4,5,6 are useless to us
+        """
+        td_list = schedule_row.find_all('td')
+        col_indx = range(0,len(td_list))
+        
+        cols = {}
+        
+        for (col_entry,col_num) in zip(td_list,col_indx):
+                print (col_entry,col_num)
+#            
+# col-2 : convert date;
+# col-3: if "at" exists, turn location value to "A"
+#        extract opponent name from <a>.text
+# col-4: take first character (W|L) as value for result
+#        take \s(?P<result>[0-9]{1,3}?-[0-9]{1,3}?) as score
     
